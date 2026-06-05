@@ -1,0 +1,137 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+:root {
+  --obsidian-900: #0d0d12;
+  --obsidian-800: #16161e;
+  --obsidian-700: #1f1f2e;
+
+  --purple-900: #3b0764;
+  --purple-800: #581c87;
+  --purple-700: #7e22ce;
+  --purple-600: #9333ea;
+  --purple-500: #a855f7;
+  --purple-400: #c084fc;
+  --purple-300: #d8b4fe;
+
+  --text-white: #f8fafc;
+  --text-muted: #cbd5e1;
+
+  --color-bg: var(--obsidian-900);
+  --color-bg-secondary: var(--obsidian-800);
+  --color-bg-deactivate: rgba(33, 0, 75, 0.04);
+
+  --color-text-primary: var(--text-white);
+  --color-text-secondary: var(--text-muted);
+
+  --color-accent: var(--purple-500);
+  --color-accent-hover: var(--purple-400);
+  --color-border: var(--purple-700);
+
+  --font-stack: 'Roboto', sans-serif;
+
+  --badge-color: #800000;
+  --badge-background-color: #ff8080;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0 2rem;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  overflow-x: hidden;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  min-height: 100dvh;
+  scroll-behavior: smooth;
+  font-family: var(--font-stack);
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+}
+footer {
+  padding: 20px 0;
+  text-align: center;
+  > p {
+    font-size: small;
+    margin: 0;
+  }
+}
+button {
+  padding: 10px;
+  margin: 1rem 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-bg);
+  background-color: var(--color-accent);
+  border: none;
+  border-radius: 0.5em;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: var(--color-accent-hover);
+    cursor: pointer;
+  }
+}
+
+input {
+  background-color: var(--obsidian-900);
+  color: var(--color-text-primary);
+  border: 1px solid var(--obsidian-700);
+  border-radius: 0.5rem;
+  padding: 10px;
+  transition: border-color 0.3s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+}
+
+select {
+  background-color: var(--obsidian-900);
+  padding: 10px;
+  border-radius: 0.5rem;
+  color: var(--text-white);
+  border: 1px solid var(--obsidian-700);
+}
+
+select option {
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+dialog {
+  background-color: var(--obsidian-700);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 0.5em;
+  min-width: 600px;
+}
+@media(max-width: 800px) {
+  dialog {
+    min-width:0 ;
+  }
+}
+
+dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
