@@ -10,7 +10,7 @@ from jwt import InvalidTokenError
 from pwdlib import PasswordHash
 from sqlmodel import Session, select
 
-from src.models import Quote
+from src.models import Entry
 from src.database import engine
 from src.models import User, TokenData
 
@@ -54,15 +54,9 @@ def list_in_db(item, item_id):
         result = session.exec(statement)
         return result.first()
 
-def list_user_by_password_and_username(username: str, password: str):
+def list_entry_by_user(username: str):
     with Session(engine) as session:
-        statement = select(User).where(User.name == username and User.password == password)
-        result = session.exec(statement)
-        return result.first()
-
-def list_carnet_by_user(username: str):
-    with Session(engine) as session:
-        statement = select(Quote).where(Quote.said_by == username)
+        statement = select(Entry).where(Entry.said_by == username)
         result = session.exec(statement)
         return result.all()
 
@@ -141,4 +135,3 @@ def authenticate_user(username: str, password: str):
         return None
 
     return user
-

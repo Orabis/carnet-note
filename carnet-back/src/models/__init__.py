@@ -1,8 +1,10 @@
 # Database table models
 from .db_models import (
     User,
-    Quote,
-    QuoteType
+    Entry,
+    EntryType,
+    EntryStatus,
+    EntryPriority
 )
 
 # API/request/response schemas and DTOs
@@ -12,25 +14,28 @@ from .schemas import (
     UserDTO,
     Token,
     TokenData,
-    QuoteCreate,
-    QuoteUpdate,
-    QUOTE_ACTION,
-    QUOTE_CITATION,
+    EntryCreate,
+    EntryUpdate,
+    ENTRY_TACHE,
+    ENTRY_DECISION,
     PasswordUpdate
 )
 
 __all__ = [
     # db models
     "User",
-    "Quote",
+    "Entry",
+    "EntryType",
+    "EntryStatus",
+    "EntryPriority",
     "UserCreate",
     "UserDAO",
     "UserDTO",
     "Token",
     "TokenData",
-    "QuoteCreate",
-    "QuoteUpdate",
-    "QUOTE_ACTION",
-    "QUOTE_CITATION",
+    "EntryCreate",
+    "EntryUpdate",
+    "ENTRY_TACHE",
+    "ENTRY_DECISION",
     "PasswordUpdate"
 ]

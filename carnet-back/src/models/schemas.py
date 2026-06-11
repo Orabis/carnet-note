@@ -2,6 +2,7 @@ from datetime import datetime, UTC
 from typing import Optional
 from pydantic import BaseModel
 from sqlmodel import Field, SQLModel
+from .db_models import EntryStatus, EntryPriority
 
 # ---------------------------------------------------------------------------
 # User related schemas
@@ -20,7 +21,7 @@ class UserDAO(BaseModel):
 class UserDTO(BaseModel):
     id: int
     username: str
-    carnets: list[QuoteCreate] = []
+    entries: list['EntryCreate'] = []
 
 
 # ---------------------------------------------------------------------------
@@ -41,24 +42,28 @@ class TokenData(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Quote related schemas
+# Entry related schemas
 # ---------------------------------------------------------------------------
 
-QUOTE_CITATION = "CITATION"
-QUOTE_ACTION = "ACTION"
+ENTRY_DECISION = "DECISION"
+ENTRY_TACHE = "TACHE"
 
-class QuoteCreate(SQLModel):
+class EntryCreate(SQLModel):
     text: str
     said_by: str
     type: str
-    instead_of: str
     label: str
     date_added: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    status: EntryStatus = Field(default=EntryStatus.TODO)
+    priority: EntryPriority = Field(default=EntryPriority.MEDIUM)
+    due_date: Optional[datetime] = None
 
 
-class QuoteUpdate(SQLModel):
+class EntryUpdate(SQLModel):
     text: Optional[str] = None
     label: Optional[str] = None
     type: Optional[str] = None
-    instead_of: Optional[str] = None
-    said_by: Optional[int] = None
+    said_by: Optional[str] = None
+    status: Optional[EntryStatus] = None
+    priority: Optional[EntryPriority] = None
+    due_date: Optional[datetime] = None

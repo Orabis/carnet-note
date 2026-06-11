@@ -4,8 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 
+from sqlmodel import SQLModel
 from src.config import ORIGINS, TAGS_METADATA, DESCRIPTION
-from src.database import check_db_connexion
+from src.database import check_db_connexion, engine
 from src.models import *
 from src.utils import *
 
@@ -13,6 +14,50 @@ from src.utils import *
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     check_db_connexion()
+    SQLModel.metadata.create_all(engine)
+    
+    with Session(engine) as session:
+        from sqlalchemy import text
+        try:
+            session.exec(text("ALTER TABLE entry ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'TODO'"))
+            session.exec(text("ALTER TABLE entry ADD COLUMN IF NOT EXISTS priority VARCHAR DEFAULT 'MEDIUM'"))
+            session.exec(text("ALTER TABLE entry ADD COLUMN IF NOT EXISTS due_date TIMESTAMP WITHOUT TIME ZONE"))
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            print(f"Adding columns failed or they already exist: {e}")
+            
+        try:
+            session.exec(text("UPDATE entry SET status = 'TODO' WHERE status = 'À faire' OR status IS NULL"))
+            session.exec(text("UPDATE entry SET status = 'IN_PROGRESS' WHERE status = 'En cours'"))
+            session.exec(text("UPDATE entry SET status = 'DONE' WHERE status = 'Terminée'"))
+            session.exec(text("UPDATE entry SET status = 'BLOCKED' WHERE status = 'Bloquée'"))
+            
+            session.exec(text("UPDATE entry SET priority = 'LOW' WHERE priority = 'Faible'"))
+            session.exec(text("UPDATE entry SET priority = 'MEDIUM' WHERE priority = 'Moyenne' OR priority IS NULL"))
+            session.exec(text("UPDATE entry SET priority = 'HIGH' WHERE priority = 'Haute'"))
+            session.commit()
+            print("Database values migration checked and completed successfully!")
+        except Exception as e:
+            session.rollback()
+            print(f"Values migration failed: {e}")
+                
+    with Session(engine) as session:
+        statement = select(User)
+        result = session.exec(statement).first()
+        if not result:
+            admin_user = User(
+                name="admin",
+                hashed_password=get_password_hash("admin")
+            )
+            yves_user = User(
+                name="yves",
+                hashed_password=get_password_hash("yves")
+            )
+            session.add(admin_user)
+            session.add(yves_user)
+            session.commit()
+            print("Database was empty. Seeded default users 'admin' (pwd: 'admin') and 'yves' (pwd: 'yves')")
     yield
 
 
@@ -34,50 +79,52 @@ app.add_middleware(
 )
 
 
-@app.get("/quotes", tags=["Quote"], status_code=200)
-def get_quotes(offset: int | None = 0):
-    return list_all_in_db(Quote, offset)
+@app.get("/entries", tags=["Entry"], status_code=200)
+def get_entries(current_user: Annotated[User, Depends(get_current_active_user)], offset: int | None = 0):
+    return list_all_in_db(Entry, offset)
 
-@app.delete("/quotes/{quote_id}", tags=["Quote"], status_code=202)
-def delete_quote(quote_id: int):
-    return delete_in_db(Quote, quote_id)
+@app.delete("/entries/{entry_id}", tags=["Entry"], status_code=202)
+def delete_entry(current_user: Annotated[User, Depends(get_current_active_user)], entry_id: int):
+    return delete_in_db(Entry, entry_id)
 
 
-@app.get("/quotes/{quote_id}", tags=["Quote"], status_code=200)
-def get_quote_by_id(current_user: Annotated[User, Depends(get_current_active_user)], quote_id: int):
-    return list_in_db(Quote, quote_id)
+@app.get("/entries/{entry_id}", tags=["Entry"], status_code=200)
+def get_entry_by_id(current_user: Annotated[User, Depends(get_current_active_user)], entry_id: int):
+    return list_in_db(Entry, entry_id)
 
-@app.post("/quotes", status_code=201, tags=["Quote"], response_model=Quote)
-def create_quote(current_user: Annotated[User, Depends(get_current_active_user)], quote: QuoteCreate):
-    if quote.type == QUOTE_ACTION or quote.type == QUOTE_CITATION:
-        db_quote = Quote(
-            text=quote.text,
-            said_by=quote.said_by,
-            label=quote.label,
-            type=quote.type,
-            instead_of=quote.instead_of,
-            date_added=quote.date_added
+@app.post("/entries", status_code=201, tags=["Entry"], response_model=Entry)
+def create_entry(current_user: Annotated[User, Depends(get_current_active_user)], entry: EntryCreate):
+    if entry.type == ENTRY_DECISION or entry.type == ENTRY_TACHE:
+        db_entry = Entry(
+            text=entry.text,
+            said_by=entry.said_by,
+            label=entry.label,
+            type=entry.type,
+            date_added=entry.date_added,
+            status=entry.status,
+            priority=entry.priority,
+            due_date=entry.due_date
         )
-        return create_in_db(db_quote)
+        return create_in_db(db_entry)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Le type d'action n'est pas valide",
+            detail="Le type d'entrée n'est pas valide",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
 
-@app.put("/quotes/{quote_id}", status_code=200, tags=["Quote"], response_model=Quote)
-def modify_quote(current_user: Annotated[User, Depends(get_current_active_user)], quote_id: int, quote_data: QuoteUpdate):
-    update_data = quote_data.model_dump(exclude_unset=True)
-    return update_in_db(Quote, quote_id, update_data)
+@app.put("/entries/{entry_id}", status_code=200, tags=["Entry"], response_model=Entry)
+def modify_entry(current_user: Annotated[User, Depends(get_current_active_user)], entry_id: int, entry_data: EntryUpdate):
+    update_data = entry_data.model_dump(exclude_unset=True)
+    return update_in_db(Entry, entry_id, update_data)
 
 @app.put("/users", status_code=200, tags=["User"])
 def change_pwd(current_user: Annotated[User, Depends(get_current_active_user)], pwd_update: PasswordUpdate) -> UserDTO:
     if pwd_update.new_pwd == pwd_update.confirm_new_pwd:
         current_user.hashed_password = get_password_hash(pwd_update.new_pwd)
         update_in_db(User, current_user.id, current_user.model_dump())
-        return UserDTO(id=current_user.id, username=current_user.name, carnets=list_carnet_by_user(current_user.name))
+        return UserDTO(id=current_user.id, username=current_user.name, entries=list_entry_by_user(current_user.name))
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -120,12 +167,12 @@ def register_user(user_dao: UserDAO) -> UserDTO:
 async def read_users_me(
         current_user: Annotated[User, Depends(get_current_active_user)],
 ) -> UserDTO:
-    return UserDTO(id=current_user.id, username=current_user.name, carnets=list_carnet_by_user(current_user.name))
+    return UserDTO(id=current_user.id, username=current_user.name, entries=list_entry_by_user(current_user.name))
 
 @app.get("/users", tags=["User"])
 async def list_users() -> list[UserDTO]:
     users = list_all_in_db(User, 0)
-    return list(map(lambda u : UserDTO(id=u.id, username=u.name, carnets=[]), users))
+    return list(map(lambda u : UserDTO(id=u.id, username=u.name, entries=[]), users))
 
 
 @app.get("/users/{user_id}", tags=["User"])
@@ -135,7 +182,7 @@ async def read_user_by_id(
 ) -> UserDTO:
     user = list_in_db(User, user_id)
     if user:
-        return UserDTO(id=user.id, username=user.name, carnets=list_carnet_by_user(user.name))
+        return UserDTO(id=user.id, username=user.name, entries=list_entry_by_user(user.name))
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="User not found",

@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import { quoteService, userService } from '@/api/axios'
+import { entryService, userService } from '@/api/axios'
 import ListCarnet from '@/components/ListCarnet.vue'
 import { sendToast } from '@/composables/utils'
-import { Quote } from '@/models/carnet'
+import { Entry, EntryPriority } from '@/models/carnet'
 import type { User } from '@/models/user'
 import moment from 'moment'
 import { computed, onMounted, ref } from 'vue'
 const dialogRef = ref<HTMLDialogElement | null>(null)
 
-const selectedType = ref<string>('CITATION')
-const newQuote = ref<string>('')
-const newInsteadOf = ref<string>('')
+const selectedType = ref<string>('DECISION')
+const newText = ref<string>('')
 const newAuthor = ref<string>('')
 const newLabel = ref<string>('')
-const quotes = ref<Quote[]>([])
+const newPriority = ref<EntryPriority>('Moyenne')
+const newDueDate = ref<string>('')
+
+const entries = ref<Entry[]>([])
 const users = ref<User[]>([])
 
 const filterText = ref<string>('')
@@ -21,31 +23,31 @@ const filterLabels = ref<string>('')
 const filterName = ref<string>('all')
 const triDate = ref<string>('↑')
 
-const filterQuotes = computed(() => {
+const filteredEntries = computed(() => {
   const text = filterText.value.toLowerCase()
   const name = filterName.value.toLowerCase()
   const label = filterLabels.value.toLowerCase()
 
-  return quotes.value.filter((quote) => {
-    const textMatch = quote.text.toLowerCase().includes(text)
-    const nameMatch = name === 'all' || (quote.said_by || '').toLowerCase().includes(name)
-    const labelMatch = (quote.label || '').toLowerCase().includes(label)
+  return entries.value.filter((entry) => {
+    const textMatch = entry.text.toLowerCase().includes(text)
+    const nameMatch = name === 'all' || (entry.said_by || '').toLowerCase().includes(name)
+    const labelMatch = (entry.label || '').toLowerCase().includes(label)
     return textMatch && nameMatch && labelMatch
   })
 })
 
 onMounted(async () => {
-  quotes.value = await userService.listAllQuotes(0)
+  entries.value = await userService.listAllEntries(0)
   users.value = await userService.listAllUser()
   if (users.value.length && users.value[0]?.username) {
     newAuthor.value = users.value[0].username
   }
-  quotes.value.map((q) => moment(q.date_added))
+  entries.value.map((q) => moment(q.date_added))
   sortQuotes(false)
 })
 
 function sortQuotes(asc: boolean) {
-  quotes.value.sort((a, b) => {
+  entries.value.sort((a, b) => {
     if (a.date_added < b.date_added) {
       return asc ? -1 : 1
     } else if (a.date_added > b.date_added) {
@@ -72,32 +74,64 @@ const closeDialog = () => {
   dialogRef.value?.close()
 }
 
-async function createQuote() {
-  let createdQuote: Quote
+async function createEntry() {
+  let createdEntry: Entry
   try {
-    createdQuote = await quoteService.createQuote(
-      newQuote.value,
-      newAuthor.value,
-      newLabel.value,
-      selectedType.value === "CITATION" ? newInsteadOf.value : "",
-      selectedType.value
-    )
-    quotes.value.push(createdQuote)
-    sendToast('Carnet créé avec succès', 'success')
+    const payload: Partial<Entry> = {
+      text: newText.value,
+      said_by: newAuthor.value,
+      label: newLabel.value,
+      type: selectedType.value === 'DECISION' ? 'DECISION' : 'TACHE',
+    }
+
+    if (payload.type === 'TACHE') {
+      payload.priority = newPriority.value
+      payload.due_date = newDueDate.value || null
+      payload.status = 'À faire'
+    }
+
+    createdEntry = await entryService.createEntry(payload)
+    entries.value.push(createdEntry)
+    sendToast('Entrée créée avec succès', 'success')
     sortQuotes(triDate.value !== '↓')
     closeDialog()
   } catch (err) {
     console.error(err)
   }
 }
+
+async function handleUpdateEntry(id: number, data: Partial<Entry>) {
+  try {
+    const updated = await entryService.updateEntry(id, data)
+    const index = entries.value.findIndex((e) => e.id === id)
+    if (index !== -1) {
+      entries.value[index] = updated
+    }
+    sendToast('Entrée mise à jour avec succès', 'success')
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+async function handleDeleteEntry(id: number) {
+  if (confirm('Êtes-vous sûr de vouloir supprimer cette entrée ?')) {
+    try {
+      await entryService.deleteEntry(id)
+      entries.value = entries.value.filter((e) => e.id !== id)
+      sendToast('Entrée supprimée avec succès', 'success')
+    } catch (err) {
+      console.error(err)
+    }
+  }
+}
 </script>
 
 <template>
   <div>
-    <h2>Liste des carnets :</h2>
+    <h2>Registre des Entrées :</h2>
     <div class="filter-section">
       <label
-        >Filtrer par nom :
+        >Filtrer par collaborateur :
         <select v-model="filterName" name="filter-name" id="filter-name">
           <option value="all">TOUS</option>
           <option v-for="user in users" :key="user.username" :value="user.username">
@@ -106,38 +140,52 @@ async function createQuote() {
         </select>
       </label>
       <label
-        >Filtrer par carnet :
-        <input v-model="filterText" type="text" placeholder="Lapin contre crétin..." />
+        >Filtrer par contenu :
+        <input v-model="filterText" type="text" placeholder="Recherche..." />
       </label>
       <label
-        >Filtrer par tags :
-        <input v-model="filterLabels" type="text" placeholder="C'est chaud" />
+        >Filtrer par catégorie :
+        <input v-model="filterLabels" type="text" placeholder="API, UI, ..." />
       </label>
       <button @click="changeSortOrder">Tri par date {{ triDate }}</button>
     </div>
-    <button @click="showDialog">+ Crée un Carnet</button>
+    <button @click="showDialog">+ Nouvelle Entrée</button>
   </div>
-  <ListCarnet :quotes="filterQuotes" />
+  <ListCarnet
+    :entries="filteredEntries"
+    @update-entry="handleUpdateEntry"
+    @delete-entry="handleDeleteEntry"
+  />
   <dialog ref="dialogRef">
-    <form @submit.prevent="createQuote">
-      <h2>Nouveau carnet</h2>
+    <form @submit.prevent="createEntry">
+      <h2>Nouvelle Entrée</h2>
       <div class="input">
-        <label>Le carnet décrit-il une action ou une citation : </label>
+        <label>Type d'entrée : </label>
         <select v-model="selectedType">
-          <option value="CITATION">CITATION</option>
-          <option value="ACTION">ACTION</option>
+          <option value="DECISION">DECISION</option>
+          <option value="TACHE">TACHE</option>
         </select>
       </div>
       <div class="input">
-        <label>{{ selectedType === "CITATION" ? "Citation" : "Action" }} : </label>
-        <input v-model="newQuote" type="text" id="create-quote" required />
+        <label>{{ selectedType === "DECISION" ? "Décision/Note" : "Tâche" }} : </label>
+        <input v-model="newText" type="text" id="create-quote" required />
       </div>
-      <div v-if="selectedType==='CITATION'" class="input">
-        <label>{{ newQuote !== '' ? `« ${newQuote} »` : '' }} à la place de :</label>
-        <input v-model="newInsteadOf" type="text" id="create-author" required />
+      <div v-if="selectedType === 'TACHE'" class="input-group">
+        <div class="input">
+          <label>Priorité :</label>
+          <select v-model="newPriority">
+            <option value="Faible">Faible</option>
+            <option value="Moyenne">Moyenne</option>
+            <option value="Haute">Haute</option>
+          </select>
+        </div>
+        <div class="input">
+          <label>Date d'échéance :</label>
+          <input v-model="newDueDate" type="date" />
+        </div>
       </div>
       <div class="input">
-        <label> Le débile concerné : </label>
+        <label> Collaborateur assigné : </label>
         <select v-model="newAuthor">
           <option v-for="user in users" :key="user.id" :value="user.username">
             {{ user.username.toUpperCase() }}
@@ -156,6 +204,14 @@ async function createQuote() {
   </dialog>
 </template>
 <style scoped>
+.input-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+.input-group > .input {
+  flex: 1;
+}
 main {
   > div {
     width: 100%;

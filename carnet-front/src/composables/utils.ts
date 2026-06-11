@@ -25,10 +25,3 @@ export function sendToast(message: string, type: string): void {
 export function formatDate(date: string | moment.Moment) {
   return moment(date).format('DD/MM/YYYY')
 }
-
-
-export const actionCommentaries = [
-  "Comment c'est possible d'être aussi con",
-  "IL EST TELLEMENT DEBILE FAUT CREVER ENFOIRE DE MEEEEEEEERDE!!!!!!!!!",
-  "Fils de pute",
-]

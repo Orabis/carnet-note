@@ -7,15 +7,15 @@ const { isAuthenticated, logout } = useAuth()
 const router = useRouter()
 
 function handleLogout() {
-  router.push('login')
-  sendToast('Vous êtes maintenant déconnecté', 'info')
   logout()
+  router.push('/login')
+  sendToast('Vous êtes maintenant déconnecté', 'info')
 }
 </script>
 
 <template>
   <nav>
-    <h1 class="nav-title">Le Véritable Carnet</h1>
+    <h1 class="nav-title">Le Carnet</h1>
     <div class="nav-links">
       <RouterLink v-show="isAuthenticated" to="/">Accueil</RouterLink>
       <RouterLink v-show="!isAuthenticated" to="/login">Se connecter</RouterLink>
