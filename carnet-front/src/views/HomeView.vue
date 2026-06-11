@@ -46,6 +46,7 @@ onMounted(async () => {
   sortQuotes(false)
 })
 
+// Trie les entrées par ordre chronologique (croissant ou décroissant).
 function sortQuotes(asc: boolean) {
   entries.value.sort((a, b) => {
     if (a.date_added < b.date_added) {
@@ -57,6 +58,7 @@ function sortQuotes(asc: boolean) {
   })
 }
 
+// Alterne l'ordre de tri chronologique des entrées.
 function changeSortOrder() {
   if (triDate.value === '↓') {
     triDate.value = '↑'
@@ -67,13 +69,16 @@ function changeSortOrder() {
   }
 }
 
+// Ouvre la boîte de dialogue de création d'une nouvelle entrée.
 const showDialog = () => {
   dialogRef.value?.showModal()
 }
+// Ferme la boîte de dialogue de création d'une nouvelle entrée.
 const closeDialog = () => {
   dialogRef.value?.close()
 }
 
+// Envoie la nouvelle entrée créée à l'API et l'ajoute à la liste locale.
 async function createEntry() {
   let createdEntry: Entry
   try {
@@ -100,6 +105,7 @@ async function createEntry() {
   }
 }
 
+// Appelle l'API de modification d'entrée et met à jour l'état local.
 async function handleUpdateEntry(id: number, data: Partial<Entry>) {
   try {
     const updated = await entryService.updateEntry(id, data)
@@ -113,6 +119,7 @@ async function handleUpdateEntry(id: number, data: Partial<Entry>) {
   }
 }
 
+// Appelle l'API de suppression d'entrée et la retire de l'état local.
 async function handleDeleteEntry(id: number) {
   if (confirm('Êtes-vous sûr de vouloir supprimer cette entrée ?')) {
     try {

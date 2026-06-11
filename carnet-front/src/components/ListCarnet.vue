@@ -10,23 +10,27 @@ const emit = defineEmits<{
   (e: 'delete-entry', entryId: number): void
 }>()
 
+// Calcule l'espace vide nécessaire pour aligner proprement la grille.
 const emptySpace = computed(() => {
   const largeEntries = props.entries?.filter((entry) => entry.text.length < 15) || []
   return 3 - ((largeEntries.length % 3) % 3)
 })
 
+// Détermine la largeur d'une carte (1 ou 2 colonnes) selon la longueur du texte.
 const getSpanClass = (entry: Entry) => {
   const length = entry.text.length
   if (length >= 15) return 'span-2'
   return 'span-1'
 }
 
+// Retourne la classe CSS correspondant à la sévérité de la priorité.
 const getPriorityClass = (priority: string) => {
   if (priority === 'Haute') return 'priority-high'
   if (priority === 'Moyenne') return 'priority-medium'
   return 'priority-low'
 }
 
+// Indique si la tâche est en retard par rapport à sa date d'échéance.
 const isOverdue = (entry: Entry) => {
   if (!entry.due_date || entry.status === 'Terminée') return false
   const today = new Date()
@@ -35,11 +39,13 @@ const isOverdue = (entry: Entry) => {
   return dueDate < today
 }
 
+// Émet un événement pour notifier le parent qu'un statut de tâche a changé.
 function changeStatus(entry: Entry, event: Event) {
   const selectEl = event.target as HTMLSelectElement
   emit('update-entry', entry.id, { status: selectEl.value as any })
 }
 
+// Émet un événement pour notifier le parent qu'une entrée doit être supprimée.
 function deleteEntry(entryId: number) {
   emit('delete-entry', entryId)
 }

@@ -5,6 +5,7 @@ const toast = useToast()
 const position = 'top-right'
 const duration = 3000
 
+// Affiche une notification toast à l'écran (succès, erreur, info, warning).
 export function sendToast(message: string, type: string): void {
   switch (type) {
     case 'success':
@@ -22,6 +23,8 @@ export function sendToast(message: string, type: string): void {
   }
 }
 
-export function formatDate(date: string | moment.Moment) {
+// Formate une date en chaîne lisible au format JJ/MM/AAAA.
+export function formatDate(date: string | moment.Moment | null | undefined) {
+  if (!date) return ''
   return moment(date).format('DD/MM/YYYY')
 }

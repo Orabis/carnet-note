@@ -8,6 +8,7 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 })
 
+// Gère et affiche les erreurs retournées par les appels à l'API.
 export function handleApiError(error: unknown): never {
   if (error instanceof AxiosError) {
     const data = error.response?.data
@@ -37,6 +38,7 @@ export function handleApiError(error: unknown): never {
 }
 
 export const entryService = {
+  // Crée une nouvelle entrée (décision ou tâche) sur le serveur.
   async createEntry(payload: Partial<Entry>) {
     return api
       .post(
@@ -49,6 +51,7 @@ export const entryService = {
       })
       .catch(handleApiError)
   },
+  // Met à jour une entrée spécifique (ex: changer son statut) sur le serveur.
   async updateEntry(id: number, data: Partial<Entry>) {
     return api
       .put(
@@ -61,6 +64,7 @@ export const entryService = {
       })
       .catch(handleApiError)
   },
+  // Supprime une entrée existante du serveur.
   async deleteEntry(id: number) {
     return api
       .delete(
@@ -75,6 +79,7 @@ export const entryService = {
 }
 
 export const userService = {
+  // Récupère toutes les entrées enregistrées.
   async listAllEntries(offset: number) {
     return api
       .get(`/entries?offset=${offset}`, {
@@ -85,6 +90,7 @@ export const userService = {
       })
       .catch(handleApiError)
   },
+  // Récupère la liste de tous les utilisateurs du système.
   async listAllUser() {
     return api
       .get('/users')
@@ -96,6 +102,7 @@ export const userService = {
 }
 
 export const authService = {
+  // Authentifie l'utilisateur pour récupérer un jeton JWT.
   async login(data: object): Promise<AxiosResponse> {
     return api
       .post('/token', data, {
@@ -103,6 +110,7 @@ export const authService = {
       })
       .catch(handleApiError)
   },
+  // Récupère les informations de profil de l'utilisateur connecté.
   async getUserProfile(token: string): Promise<User> {
     try {
       const res = await api.get('/users/me', {
@@ -113,6 +121,7 @@ export const authService = {
       return handleApiError(error) as never
     }
   },
+  // Envoie une demande de modification de mot de passe de l'utilisateur.
   async changePassword(newPwd: string, confirmNewPwd: string, token: string | null) {
     return api
       .put(

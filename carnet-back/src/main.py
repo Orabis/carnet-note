@@ -13,6 +13,7 @@ from src.utils import *
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Gère le cycle de vie de l'application (connexion BDD, migrations et création d'utilisateurs par défaut)."""
     check_db_connexion()
     SQLModel.metadata.create_all(engine)
     
@@ -81,19 +82,23 @@ app.add_middleware(
 
 @app.get("/entries", tags=["Entry"], status_code=200)
 def get_entries(current_user: Annotated[User, Depends(get_current_active_user)], offset: int | None = 0):
+    """Récupère la liste de toutes les entrées (décisions et tâches) avec pagination."""
     return list_all_in_db(Entry, offset)
 
 @app.delete("/entries/{entry_id}", tags=["Entry"], status_code=202)
 def delete_entry(current_user: Annotated[User, Depends(get_current_active_user)], entry_id: int):
+    """Supprime une entrée spécifique de la base de données par son identifiant."""
     return delete_in_db(Entry, entry_id)
 
 
 @app.get("/entries/{entry_id}", tags=["Entry"], status_code=200)
 def get_entry_by_id(current_user: Annotated[User, Depends(get_current_active_user)], entry_id: int):
+    """Récupère les détails d'une entrée spécifique par son identifiant."""
     return list_in_db(Entry, entry_id)
 
 @app.post("/entries", status_code=201, tags=["Entry"], response_model=Entry)
 def create_entry(current_user: Annotated[User, Depends(get_current_active_user)], entry: EntryCreate):
+    """Crée une nouvelle entrée (décision ou tâche) après validation."""
     if entry.type == ENTRY_DECISION or entry.type == ENTRY_TACHE:
         db_entry = Entry(
             text=entry.text,
@@ -116,11 +121,13 @@ def create_entry(current_user: Annotated[User, Depends(get_current_active_user)]
 
 @app.put("/entries/{entry_id}", status_code=200, tags=["Entry"], response_model=Entry)
 def modify_entry(current_user: Annotated[User, Depends(get_current_active_user)], entry_id: int, entry_data: EntryUpdate):
+    """Modifie les informations d'une entrée existante."""
     update_data = entry_data.model_dump(exclude_unset=True)
     return update_in_db(Entry, entry_id, update_data)
 
 @app.put("/users", status_code=200, tags=["User"])
 def change_pwd(current_user: Annotated[User, Depends(get_current_active_user)], pwd_update: PasswordUpdate) -> UserDTO:
+    """Modifie le mot de passe de l'utilisateur actuellement connecté."""
     if pwd_update.new_pwd == pwd_update.confirm_new_pwd:
         current_user.hashed_password = get_password_hash(pwd_update.new_pwd)
         update_in_db(User, current_user.id, current_user.model_dump())
@@ -135,6 +142,7 @@ def change_pwd(current_user: Annotated[User, Depends(get_current_active_user)], 
 async def login_for_access_token(
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
+    """Authentifie un utilisateur et génère un jeton d'accès JWT."""
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -151,6 +159,7 @@ async def login_for_access_token(
 
 @app.post("/users", tags=["User"], status_code=201)
 def register_user(user_dao: UserDAO) -> UserDTO:
+    """Enregistre un nouvel utilisateur dans le système."""
     u = list_user_in_db(user_dao.username)
     if not u:
         created_user = create_in_db(User(name=user_dao.username, hashed_password=get_password_hash(user_dao.password)))
@@ -167,10 +176,12 @@ def register_user(user_dao: UserDAO) -> UserDTO:
 async def read_users_me(
         current_user: Annotated[User, Depends(get_current_active_user)],
 ) -> UserDTO:
+    """Récupère les informations du profil de l'utilisateur connecté ainsi que ses entrées."""
     return UserDTO(id=current_user.id, username=current_user.name, entries=list_entry_by_user(current_user.name))
 
 @app.get("/users", tags=["User"])
 async def list_users() -> list[UserDTO]:
+    """Récupère la liste de tous les utilisateurs enregistrés."""
     users = list_all_in_db(User, 0)
     return list(map(lambda u : UserDTO(id=u.id, username=u.name, entries=[]), users))
 
@@ -180,6 +191,7 @@ async def read_user_by_id(
         current_user: Annotated[User, Depends(get_current_active_user)],
         user_id: int
 ) -> UserDTO:
+    """Récupère les informations d'un utilisateur par son identifiant."""
     user = list_in_db(User, user_id)
     if user:
         return UserDTO(id=user.id, username=user.name, entries=list_entry_by_user(user.name))

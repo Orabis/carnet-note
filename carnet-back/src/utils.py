@@ -23,6 +23,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 def create_in_db(item):
+    """Crée et enregistre un nouvel enregistrement dans la base de données."""
     with Session(engine) as session:
         session.add(item)
         session.commit()
@@ -31,6 +32,7 @@ def create_in_db(item):
 
 
 def delete_in_db(item, item_id):
+    """Supprime un enregistrement par son identifiant de la base de données."""
     with Session(engine) as session:
         statement = select(item).where(item.id == item_id)
         result = session.exec(statement).first()
@@ -42,6 +44,7 @@ def delete_in_db(item, item_id):
 
 
 def list_all_in_db(item, offset):
+    """Récupère tous les enregistrements d'une table avec un décalage (offset)."""
     with Session(engine) as session:
         statement = select(item).offset(offset) ## retire la limite de la db pour l'instant .limit(25)
         results = session.exec(statement)
@@ -49,12 +52,14 @@ def list_all_in_db(item, offset):
 
 
 def list_in_db(item, item_id):
+    """Récupère un enregistrement spécifique par son identifiant."""
     with Session(engine) as session:
         statement = select(item).where(item.id == item_id)
         result = session.exec(statement)
         return result.first()
 
 def list_entry_by_user(username: str):
+    """Récupère toutes les entrées assignées à un utilisateur particulier."""
     with Session(engine) as session:
         statement = select(Entry).where(Entry.said_by == username)
         result = session.exec(statement)
@@ -62,6 +67,7 @@ def list_entry_by_user(username: str):
 
 # username est unique donc ça marche mgl
 def list_user_in_db(username: str):
+    """Récupère un utilisateur de la base de données par son nom d'utilisateur."""
     with Session(engine) as session:
         statement = select(User).where(User.name == username)
         result = session.exec(statement)
@@ -69,6 +75,7 @@ def list_user_in_db(username: str):
 
 
 def update_in_db(model, item_id: int, data_to_update: dict):
+    """Met à jour les champs d'un enregistrement existant dans la base de données."""
     with Session(engine) as session:
         db_item = session.get(model, item_id)
 
@@ -85,9 +92,11 @@ def update_in_db(model, item_id: int, data_to_update: dict):
 
 
 def verify_password(plain_password, hashed_password):
+    """Vérifie si un mot de passe en clair correspond à sa version hachée."""
     return PASSWORD_HASH.verify(plain_password, hashed_password)
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    """Génère un jeton d'accès JWT avec une durée de validité définie."""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -98,6 +107,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    """Récupère l'utilisateur correspondant au jeton JWT fourni."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -120,12 +130,15 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 async def get_current_active_user(
     current_user: Annotated[User, Depends(get_current_user)],
 ):
+    """Retourne l'utilisateur actuellement actif (validation de session)."""
     return current_user
 
 def get_password_hash(password):
+    """Génère une empreinte de hachage sécurisée pour un mot de passe."""
     return PASSWORD_HASH.hash(password)
 
 def authenticate_user(username: str, password: str):
+    """Valide les identifiants de l'utilisateur (nom et mot de passe)."""
     user = list_user_in_db(username)
 
     if not user:

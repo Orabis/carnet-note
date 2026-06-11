@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { authService } from '@/api/axios'
-import ListCarnet from '@/components/ListCarnet.vue'
 import { useAuth } from '@/composables/useAuth'
 import { sendToast } from '@/composables/utils'
 import type { User } from '@/models/user'
@@ -15,8 +14,6 @@ const me: Ref<User | undefined> = ref(undefined)
 const newPwd = ref<string>('')
 const confirmNewPwd = ref<string>('')
 
-//faut refacto ca c pas beau parceque y'aura de la redondance
-// cmt on fait alors wallah ?
 onMounted(async () => {
   if (token.value) {
     me.value = await axiosClient.getUserProfile(token.value)

@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode'
 export const token = ref(localStorage.getItem('token'))
 
 export function useAuth() {
+  // Connecte l'utilisateur en récupérant et stockant le jeton de session JWT.
   async function login(credentials: object) {
     try {
       const response = await authService.login(credentials)
@@ -18,11 +19,13 @@ export function useAuth() {
     }
   }
 
+  // Déconnecte l'utilisateur en supprimant le jeton JWT du stockage local.
   function logout() {
     token.value = null
     localStorage.removeItem('token')
   }
 
+  // Vérifie si le jeton JWT est présent et n'est pas expiré.
   function isValid(token: string | null) {
     if (!token) return false
 
@@ -37,6 +40,7 @@ export function useAuth() {
     }
   }
 
+  // Demande le changement de mot de passe pour l'utilisateur connecté.
   function changePassword(newPwd: string, confirmNewPwd: string) {
     return authService.changePassword(newPwd, confirmNewPwd, token.value)
   }
