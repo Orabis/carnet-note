@@ -42,8 +42,37 @@ Le projet est organisé en deux dossiers principaux :
 
 Pour lancer l'application en local, vous pouvez utiliser Docker Compose :
 
+### Backend
+Dans le backend, avoir un .env avec pour exemple : 
 ```bash
-docker-compose up --build 
+DB_PASSWORD=test1234
+DB_NAME=carnet_dbdb
+DB_USER=carnet
+DB_PORT=5431
+DB_ADDRESS=localhost
+SECRET_KEY=41a88c32d71ff40307df80a6517086b839e80a89028ce8ec23123954ae19104b
+```
+Et lancer le conteneur de la base de donnée
+
+```bash
+docker-compose up 
+```
+Initialiser avec poetry :
+```
+poetry install
+```
+et lancer l'application une fois que tout est bon
+```
+poetry run fastapi dev src/main.py
 ```
 
-L'application frontend sera accessible sur `http://localhost:5173` et l'API backend sur `http://localhost:8000`.
+### Frontend
+
+Avoir un .env avec la valeur de l'url du backend : 
+`VITE_API_URL=http://127.0.0.1:8000`
+
+Et installer avec PNPM (NPM Possible)
+```pnpm install```
+ensuite lancer l'application
+
+`pnpm dev` ou npm `npm run dev`
